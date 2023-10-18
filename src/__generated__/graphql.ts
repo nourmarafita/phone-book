@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { gql } from '@apollo/client';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -346,6 +347,7 @@ export type Contact_Avg_Fields = {
   __typename?: 'contact_avg_fields';
   id?: Maybe<Scalars['Float']['output']>;
 };
+
 
 /** Boolean expression to filter rows from the table "contact". All fields are combined with a logical 'AND'. */
 export type Contact_Bool_Exp = {
