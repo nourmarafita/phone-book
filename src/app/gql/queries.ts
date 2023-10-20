@@ -27,6 +27,7 @@ export const GET_CONTACT_LIST = gql`
 `;
 
 export type Contact = {
+  package: any;
   created_at: string;
   first_name: string;
   id: number;

@@ -1,9 +1,9 @@
 import { objectKeys } from '@gilbarbara/helpers';
 import { PlainObject } from '@gilbarbara/types';
 
-import { variants as themeVariants } from '@gilbarbara/components/src/modules/theme';
+import { variants as themeVariants } from '../../../../modules/theme';
 
-import { VariantWithTones } from '@gilbarbara/components/src/types';
+import { VariantWithTones } from '../../../../types';
 
 const base = ['normal', 'stretch'];
 const contentDistribution = ['space-around', 'space-between', 'space-evenly', 'stretch'];

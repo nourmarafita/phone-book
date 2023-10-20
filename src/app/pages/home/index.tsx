@@ -1,309 +1,245 @@
-import React, { ReactNode } from "react";
-// import Table from "./components/Table";
-// import { useQuery } from "@apollo/client";
-// import { GET_CONTACT_LIST, Contact } from "../../gql/queries";
-import { Simplify, StringOrNumber } from "@gilbarbara/types";
-import {
-  DataTable,
-  // defaultProps,
-} from "@gilbarbara/components";
-import { DataTableColumn } from "@gilbarbara/components";
-import {
-  ChangeEvent,
-  forwardRef,
+import React, {
+  // ChangeEvent,
+  // forwardRef,
   useCallback,
-  // useEffect,
+  useEffect,
   useMemo,
-  useRef,
-  useState,
+  // useRef,
+  // useState,
 } from "react";
-import { useSetState } from "react-use";
-// import { removeAccents, request } from "@gilbarbara/helpers";
-import { removeAccents } from "@gilbarbara/helpers";
-// import { StringOrNull } from "@gilbarbara/types";
-// import { Meta, StoryObj } from "@storybook/react";
+// import Table from "./components/Table";
+import { useQuery } from "@apollo/client";
+import { GET_CONTACT_LIST } from "../../gql/queries";
+// import { request } from "@gilbarbara/helpers";
+import { DataTable } from "../../../components";
 import {
-  Anchor,
+  DataTableColumn,
+  DataTableProps,
+  DataTableRow,
+} from "../../../components";
+import { useSetState } from "react-use";
+import {
+  // Anchor,
   Box,
-  Button,
+  // Button,
   ButtonUnstyled,
-  ComponentWrapper,
-  Dialog,
-  Dropdown,
+  // ComponentWrapper,
+  // Dialog,
+  // Dropdown,
   H1,
   Icon,
-  Input,
-  NonIdealState,
-  Spacer,
-  Tag,
-  Text,
-} from "@gilbarbara/components";
-import { users } from "./components/fixtures";
-// import {
-//   addChromaticModes,
-//   colorProps,
-//   disableControl,
-//   flexItemProps,
-//   hideProps,
-//   layoutProps,
-//   radiusProps,
-//   spacingProps,
-// } from "./components/helpers";
-import {
-  DropdownOption,
-  // VariantWithTones,
-} from "@gilbarbara/components/src/types";
+  // Input,
+  // NonIdealState,
+  // Spacer,
+  // Tag,
+  // Text,
+} from "../../../components";
+// import { users } from "./components/fixtures";
+// import { DropdownOption, VariantWithTones } from "../../../types";
+import { StringOrNull } from "@gilbarbara/types";
+import { parseISO, format } from 'date-fns';
 
-export type DataTableRowContent =
-  | ReactNode
-  | { label: ReactNode; value: string };
-
-export type DataTableRow<T extends string> = Simplify<
-  Record<T, DataTableRowContent> & { id?: StringOrNumber }
->;
-
-// type Story = StoryObj<typeof DataTable>;
-
-type WrapperColumns = "email" | "team" | "status" | "action";
-
-type WrapperState = typeof wrapperState;
-
-interface SharedState {
-  // eslint-disable-next-line react/no-unused-prop-types
-  search: string;
-  status: string;
-  team: string;
+// interface Package {
+//   author: {
+//     email: string;
+//     name: string;
+//     username: string;
+//   };
+//   date: string;
+//   description: string;
+//   keywords: string[];
+//   links: {
+//     bugs: string;
+//     homepage: string;
+//     npm: string;
+//     repository: string;
+//   };
+//   maintainers: Array<{
+//     email: string;
+//     username: string;
+//   }>;
+//   name: string;
+//   publisher: Array<{
+//     email: string;
+//     username: string;
+//   }>;
+//   scope: string;
+//   version: string;
+// }
+interface Contacts {
+  created_at: string;
+  first_name: string;
+  id: number;
+  last_name: string;
+  phones: Array<{
+    number: number;
+  }>;
 }
 
-interface Props extends SharedState {
-  setState: (state: Partial<SharedState>) => void;
+// interface Entry {
+//   contacts: Contacts;
+//   score: {
+//     detail: {
+//       maintenance: number;
+//       popularity: number;
+//       quality: number;
+//     };
+//     final: number;
+//   };
+//   searchScore: number;
+// }
+
+// interface Response {
+//   objects: Entry[];
+//   time: string;
+//   total: number;
+// }
+
+interface ExternalState {
+  currentPage: number;
+  loading: boolean;
+  results: Array<Contacts>;
+  selected: StringOrNull;
+  showModal: boolean;
+  totalPages: number;
 }
 
-const wrapperState = {
+// type ExternalColumns = "name" | "description" | "keywords" | "version";
+type ExternalColumns = "first_name" | "last_name" | "created_at" | "phones" | "action";
+// | "links";
+
+const externalState: ExternalState = {
+  currentPage: 1,
   loading: false,
-  search: "",
-  searchValue: "",
-  showDialog: false,
-  team: "",
-  status: "",
+  results: [],
+  selected: null,
+  showModal: false,
+  totalPages: 0,
 };
 
-const teams = users.reduce((acc, user) => {
-  if (user.team && !acc.some((d) => user.team === d.label)) {
-    acc.push({
-      label: user.team,
-      value: user.team,
-    });
-  }
+// const apiURL =
+//   "https://registry.npmjs.org/-/v1/search?text=author:gilbarbara&size=10";
 
-  return acc;
-}, [] as DropdownOption[]);
-
-const statuses = [
-  { label: "Invites", value: "invites" },
-  { label: "Users", value: "users" },
-];
-
-const UserHeader = forwardRef<HTMLDivElement, Props>((props, ref) => {
-  const { setState, status, team } = props;
-  const [searchValue, setSearchValue] = useState("");
-  const debounceTimeout = useRef<number>();
-
-  const handleChangeInput = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-
-    clearTimeout(debounceTimeout.current);
-
-    setSearchValue(value);
-
-    debounceTimeout.current = window.setTimeout(() => {
-      setState({ search: value });
-    }, 750);
-  };
-
-  const handleChangeStatus = (options: DropdownOption[]) => {
-    const [selected] = options;
-    const nextStatus = selected ? (selected.value as string) : "";
-
-    setState({ status: nextStatus });
-  };
-
-  const handleChangeTeam = (options: DropdownOption[]) => {
-    const [selected] = options;
-    const nextTeam = selected ? (selected.value as string) : "";
-
-    setState({ team: nextTeam });
-  };
-
-  return (
-    <Spacer ref={ref} data-component-name="UserHeader" mb="lg">
-      <ComponentWrapper data-flex="1" prefix={<Icon name="search" size={24} />}>
-        <Input
-          // accent={accent}
-          name="name"
-          onChange={handleChangeInput}
-          placeholder="Search by username"
-          prefixSpacing
-          value={searchValue}
-        />
-      </ComponentWrapper>
-      <Dropdown
-        // accent={accent}
-        items={teams}
-        onChange={handleChangeTeam}
-        placeholder="Team"
-        showClearButton={!!team}
-        values={teams.filter((d) => d.value === team)}
-        width={180}
-      />
-      <Dropdown
-        items={statuses}
-        onChange={handleChangeStatus}
-        placeholder="Status"
-        showClearButton={!!status}
-        values={statuses.filter((d) => d.value === status)}
-        width={180}
-      />
-    </Spacer>
+function ListContact(props: DataTableProps) {
+  const { loading, error, data } = useQuery<{ contact: Contacts[] }>(
+    GET_CONTACT_LIST
   );
-});
+  console.log(loading, error, data, `==== loading, error, data`);
+  console.log(data?.contact?.length, `==== data?.contact?.length`);
+  // const { accent, defaultSortColumn, maxRows = 10 } = props;
+  const { defaultSortColumn = 10 } = props;
+  // const [{ currentPage, loading, results, totalPages }, setState] =
+  //   useSetState(externalState);
+  const [{ currentPage, results, totalPages }, setState] =
+    useSetState(externalState);
 
-function Contacts() {
-  // const { accent } = props;
-  const [{ loading, search, showDialog, status, team }, setState] =
-    useSetState<WrapperState>(wrapperState);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const getPeople = useCallback(async () => {
+    // setState({ loading: true });
+    // const packages = await request<Response>(url, {
+    //   headers: {
+    //     "Content-Type": "text/plain",
+    //   },
+    // });
 
-  const handleClickReset = useCallback(() => {
-    setState({ search: "", searchValue: "", status: "" });
-  }, [setState]);
+    if (loading === false) {
+      setState({
+        totalPages: data?.contact?.length,
+        loading: loading,
+        results: data?.contact?.map((d) => d),
+      });
+    }
+  }, [data?.contact, loading, setState]);
 
-  const handleClickDelete = useCallback(() => {
-    setState({ showDialog: true });
-  }, [setState]);
+  useEffect(() => {
+    getPeople();
+  }, [getPeople]);
 
-  const handleClickCancel = () => {
-    setState({ showDialog: false });
-  };
-
-  const handleClickConfirmation = () => {
-    setState({ showDialog: false });
-  };
+  // const handleClickPage = async (page: number) => {
+  //   setState({ currentPage: page });
+  //   await getPeople(`${apiURL}&from=${(page - 1) * maxRows}`);
+  // };
 
   const columns = useMemo(() => {
-    const items: DataTableColumn<WrapperColumns>[] = [
-      { key: "email", title: "Nome / E-mail", size: 250 },
-      { key: "team", title: "Team", min: 150 },
-      { key: "status", title: "Status", min: 180 },
+    const items: DataTableColumn<ExternalColumns>[] = [
+      { key: "first_name", title: "First Name", min: 150 },
+      { key: "last_name", title: "Last Name", min: 150 },
+      { key: "created_at", title: "Created At", min: 100, disableSort: true },
+      { key: "phones", disableSort: true, min: 140, title: "Phones" },
       {
         key: "action",
         disableSort: true,
         size: 48,
-        title: null,
+        title: "Action",
       },
     ];
 
     return items;
   }, []);
 
-  const data = useMemo(() => {
-    return users
-      .filter((d) => {
-        const nameOrEmail = removeAccents(d.name || d.email).toLowerCase();
-
-        const searchFilter = search
-          ? nameOrEmail.includes(removeAccents(search).toLowerCase())
-          : true;
-        let statusFilter = true;
-        const teamFilter = team ? d.team === team : true;
-
-        if (status) {
-          statusFilter = status === "invites" ? !!d.code : !!d.id;
-        }
-
-        return searchFilter && statusFilter && teamFilter;
-      })
-      .map((user) => {
-        const row: DataTableRow<WrapperColumns> = {
-          id: user.id ?? user.code,
-          email: (
-            <>
-              <Text color={!user.name ? "gray" : undefined}>
-                {user.name || "Unnamed User"}
-              </Text>
-              <Anchor href={`mailto:${user.email}`} size="mid">
-                {user.email}
-              </Anchor>
-            </>
-          ),
-          team: <Text size="mid">{user.team || "--"}</Text>,
-          status: (
-            <Tag
-              bg={user.id ? "green" : "blue"}
-              iconAfter={user.id ? "check" : "hourglass"}
-              invert
-            >
-              {user.id ? "Active" : "Invite sent"}
-            </Tag>
-          ),
+  const data1 = useMemo(
+    () =>
+      results.map((package_) => {
+        const row: DataTableRow<ExternalColumns> = {
+          id: package_.id,
+          first_name: package_.first_name,
+          last_name: package_.last_name,
+          created_at: format(parseISO(package_.created_at), 'yyyy-MM-dd'),
+          phones: package_.phones[0].number,
           action: (
             <ButtonUnstyled
-              data-code={user.code}
-              data-id={user.id}
-              onClick={handleClickDelete}
+              data-code={package_.first_name}
+              data-id={package_.id}
+              // onClick={handleClickDelete}
             >
               <Icon name="trash" />
             </ButtonUnstyled>
           ),
+          // keywords: package_.keywords ? package_.keywords.join(", ") : "--",
+          // version: {
+          //   label: <Tag bg={accent}>{package_.version}</Tag>,
+          //   value: package_.version,
+          // },
+          // links: (
+          //   <>
+          //     <Anchor
+          //       color={accent}
+          //       href={package_.links.homepage}
+          //       target="_blank"
+          //     >
+          //       Homepage
+          //     </Anchor>
+          //     <Anchor color={accent} href={package_.links.npm} target="_blank">
+          //       NPM
+          //     </Anchor>
+          //   </>
+          // ),
         };
 
         return row;
-      });
-  }, [handleClickDelete, search, status, team]);
-
-  const noResults = useMemo(() => {
-    return (
-      <NonIdealState icon="search" size="sm" type="no-results">
-        <Button onClick={handleClickReset} size="sm">
-          Reset filters
-        </Button>
-      </NonIdealState>
-    );
-  }, [handleClickReset]);
+      }),
+    [results]
+  );
   return (
     <div>
-      <Box width="100%">
-        <H1>Members</H1>
-        <UserHeader
-          ref={headerRef}
-          // accent={accent}
-          search={search}
-          setState={setState}
-          status={status}
-          team={team}
-        />
-        <Box data-component-name="DataTableWrapper">
-          <DataTable<WrapperColumns>
-            // {...props}
-            columns={columns}
-            data={data}
-            defaultSortColumn="email"
-            disableScroll
-            loading={loading}
-            noResults={noResults}
-            scrollElement={headerRef.current}
-          />
-        </Box>
-        <Dialog
-          content="Do you want to remove this user?"
-          isActive={showDialog}
-          onClickCancel={handleClickCancel}
-          onClickConfirmation={handleClickConfirmation}
-          title="Remove user"
+      <Box width="100%" padding="xl" margin="xl">
+        <H1>Contact List</H1>
+        <DataTable<ExternalColumns>
+          {...props}
+          columns={columns}
+          data={data1}
+          defaultSortColumn={defaultSortColumn as ExternalColumns | undefined}
+          disableScroll
+          loading={loading}
+          // onClickPage={handleClickPage}
+          remote={{
+            currentPage,
+            totalPages,
+            useInternalSorting: true,
+          }}
         />
       </Box>
     </div>
   );
 }
 
-export default Contacts;
+export default ListContact;
